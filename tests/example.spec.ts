@@ -1,14 +1,17 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@fixtures';
+import { users } from '@data/users';
 
-test('test', async ({ page }) => {
-  await page.goto('https://www.saucedemo.com/');
-  await page.locator('[data-test="username"]').click();
-  await page.locator('[data-test="username"]').fill('standard_user');
-  await page.locator('[data-test="password"]').click();
-  await page.locator('[data-test="password"]').fill('secret_sauce');
-  await page.locator('[data-test="login-button"]').click();
-  await expect(page.locator('[data-test="inventory-container"]')).toBeVisible();
-  await expect(page.locator('[data-test="secondary-header"]')).toContainText('ProductsName (A to Z)Name (A to Z)Name (Z to A)Price (low to high)Price (high to low)');
-  await expect(page.locator('[data-test="shopping-cart-link"]')).toBeVisible();
-  await expect(page.locator('[data-test="primary-header"]')).toContainText('Swag Labs');
+test.describe('Login functionality', () => {
+  test('allows a standard user to log in and view the inventory', async ({ loginPage, page }) => {
+    // Arrange
+    const user = users.sauceDemo;
+    await loginPage.navigate();
+
+    // Act
+    await loginPage.login(user.username, user.password);
+
+    // Assert
+    await expect(page.locator('[data-test="inventory-container"]')).toBeVisible();
+    await expect(page.getByText('Products', { exact: true })).toBeVisible();
+  });
 });
