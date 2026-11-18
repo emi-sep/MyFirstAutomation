@@ -14,12 +14,12 @@ The facts below were checked against repository files during the last hub review
 | Dependency | Declared version | Lockfile resolution | Impact on framework rules |
 |------------|------------------|----------------------|---------------------------|
 | `@playwright/test` | `^1.64.1` | `1.64.1` | Provides Playwright Test, fixtures, assertions, projects, steps, and reporters. Installed package metadata requires Node `>=20`. |
-| `typescript` | Not declared in `package.json`; lockfile root metadata says `^7.0.2` | `7.0.2` | Used by `typecheck`; direct dependency declaration is missing from the manifest. Resolve manifest/lockfile drift before relying on clean installs. |
-| `dotenv` | `^18.0.9` | `18.0.9` | Loads `.env` in `playwright.config.ts`; environment validation is implemented in `src/config/Env.ts`. |
-| `@types/node` | `^26.6.5` | `26.6.6` (lockfile root metadata says `^26.6.6`) | Types Node APIs; manifest and lockfile root ranges differ. |
+| `typescript` | `^7.0.2` | `7.0.2` | Used by the `typecheck` script. Manifest and lockfile root metadata align. |
+| `dotenv` | `^18.0.9` | `18.0.9` | Loads `.env` in `playwright.config.ts`; environment validation is implemented in `src/core/config/env.ts` and re-exported by `src/config/Env.ts` for compatibility. |
+| `@types/node` | `^26.6.6` | `26.6.6` | Types Node APIs; manifest and lockfile root ranges align. |
 | Node.js runtime | No `engines` field in `package.json`; current runtime observed as `v24.22.0` | Not applicable | The locked Playwright package requires Node `>=20`; the observed runtime meets that requirement. Recheck the runtime in other environments. |
 
-The `package.json` and lockfile root metadata disagree: the lockfile declares TypeScript and has a different `@types/node` range. This is a verified repository discrepancy, not a Skill rule. Do not silently repair it while updating documentation.
+The package manifest and lockfile root metadata currently agree for direct dependencies. Recheck both when dependency declarations change; do not infer fresh-install success without running the package manager in an authorized validation task.
 
 ### TypeScript compiler settings
 
@@ -35,7 +35,7 @@ Values are from `tsconfig.json`; “not configured” means this file does not s
 | `noImplicitOverride` | Not configured | Do not require explicit `override` based on this setting. |
 | `noEmit` | `true` | TypeScript validation checks types without emitting compiled files. |
 | `useDefineForClassFields` | Not configured | Do not assume a project-specific class field setting. |
-| `paths` | Five mappings listed below | These are TypeScript path mappings; they do not by themselves prove Playwright runtime resolution. |
+| `paths` | Seven mappings listed below | These are TypeScript path mappings; they do not by themselves prove Playwright runtime resolution. |
 | `types` | `["node"]` | Node declarations are included in the configured type environment. |
 | `resolveJsonModule` | `true` | JSON imports are permitted by TypeScript. |
 
@@ -46,12 +46,14 @@ Aliases below are copied from `tsconfig.json`. Ownership follows the registry an
 | Alias | Resolves to | Used by |
 |-------|-------------|---------|
 | `@pages/*` | `./src/ui/pages/*` | `pom-architect` owns Page Object imports; currently used by fixtures and specs. |
+| `@core/*` | `./src/core/*` | Shared technical and Screenplay contracts. |
+| `@sites/*` | `./src/sites/*` | Site-specific application and test infrastructure, including DemoQA. |
 | `@fixtures` | `./src/fixtures/index` | `test-standards` owns fixture definitions and test fixture usage. |
 | `@fixtures/*` | `./src/fixtures/*` | `test-standards` owns fixture modules. |
 | `@data/*` | `./src/data/*` | `test-standards` owns test data and credential hygiene. |
-| `@config/*` | `./src/config/*` | `test-standards` owns environment and test configuration hygiene; no current use was found in `src/` or `tests/`. |
+| `@config/*` | `./src/config/*` | `test-standards` owns environment and test configuration hygiene; retained for compatibility. |
 
-`pom-architect` currently documents an older `@pages/*` destination (`src/pages/*`). The actual alias is `src/ui/pages/*`; treat the mismatch as unresolved sub-skill documentation drift until that skill is separately updated. Verify runtime import resolution when changing alias or module settings.
+`pom-architect` documents the verified `@pages/*` destination (`src/ui/pages/*`). Verify runtime import resolution when changing alias or module settings.
 
 ### Project folder structure
 
@@ -59,16 +61,20 @@ Relevant current repository tree (generated output, `.git`, and `node_modules` o
 
 ```text
 src/
-  config/                 Environment validation (Env.ts)
-  data/                   Test data (users.ts)
-  fixtures/               Playwright fixtures (index.ts)
+  core/config/            Shared environment implementation
+  core/actors/            Shared Screenplay contracts and actor factory
+  config/                 Compatibility re-export for environment helpers
+  data/                   SauceDemo data (users.ts)
+  fixtures/               SauceDemo Playwright fixtures
+  sites/demoqa/           DemoQA API, UI, tasks, questions, fixture, and data
   ui/pages/               BasePage, LoginPage, InventoryPage
-tests/                    example.spec.ts, inventory.spec.ts
-.agents/skills/           This orchestrator and four focused Skills
+tests/ui/smoke/           Feature-organized SauceDemo and DemoQA TC specs
+.agents/skills/           This orchestrator and focused Skills
 .github/workflows/        playwright.yml
+docs/                     Governance, test cases, lifecycle, and execution evidence
 ```
 
-`src/ui/components/`, `src/helpers/`, `src/api/`, and `docs/` are absent. There is no root `README.md`; a lowercase, empty `readme` file exists. Do not describe absent folders or documentation as implemented. The `tests/` specs currently sit directly under `tests/`; `spec-standards` defines the target hierarchy and owns those organizational findings.
+The existing SauceDemo Page Objects remain under `src/ui/pages/`. DemoQA API code is under `src/sites/demoqa/api/`, not a root `src/api/` directory. Its cases are documented under `docs/test-cases/demoqa/`, with implementation and execution notes under `docs/evidence/`. No shared `src/common/` UI implementation currently exists. Treat this as a current snapshot and recheck it when the structure changes.
 
 | Directory | Responsibility | Owner |
 |-----------|----------------|-------|
@@ -77,6 +83,7 @@ tests/                    example.spec.ts, inventory.spec.ts
 | `src/data/` | Test data | `test-standards` |
 | `src/config/` | Environment configuration used by test execution | `test-standards` for secrets/config quality; orchestrator for cross-cutting changes |
 | `tests/` | Playwright test specifications | `test-standards` for implementation quality; `spec-standards` for organization and lifecycle properties |
+| `docs/` | Detailed technical and governance references | `automation-architect` coordinates documentation updates; focused Skills remain authoritative for their rules |
 | `.agents/skills/` | Codex Skill instructions | `automation-architect` coordinates; each Skill owns its registered domain |
 | `.github/workflows/` | CI workflow | `automation-architect` coordinates cross-cutting framework changes |
 
@@ -86,8 +93,8 @@ Verified from `playwright.config.ts`:
 
 | Setting | Actual value | Notes |
 |---------|--------------|-------|
-| `testDir` | `./tests` | Includes the existing root-level specs. |
-| `baseURL` | `env.BASE_URL` from `getEnvironment()` | `.env` is loaded via `dotenv`; URL must be HTTP or HTTPS. |
+| `testDir` | `./tests` | Discovers the current specs under `tests/ui/smoke/`. |
+| `baseURL` | `env.BASE_URL` from `getEnvironment()` | `.env` is loaded via `dotenv`; URL must be HTTP or HTTPS. DemoQA specs override it with `DEMOQA_BASE_URL`, which defaults to the public DemoQA URL. |
 | `fullyParallel` | `true` | Tests may execute concurrently. |
 | `forbidOnly` | `!!process.env.CI` | Enabled when `CI` is truthy. |
 | `retries` | `2` in CI, otherwise `0` | Trace is set for the first retry. |
@@ -108,7 +115,7 @@ Commands come directly from `package.json`:
 | Script | Actual command | Purpose |
 |--------|---------------|---------|
 | `test` | `playwright test` | Full configured test run. |
-| `test:smoke` | `playwright test --grep @smoke` | Filter titles/tags by `@smoke`; no such tag was found in current `tests/`. |
+| `test:smoke` | `playwright test --grep @smoke` | Selects specs tagged `@smoke`; derive the current count from discovery rather than hardcoding it here. |
 | `test:headed` | `playwright test --headed` | Headed browser execution. |
 | `test:debug` | `playwright test --debug` | Playwright debug mode. |
 | `test:ui` | `playwright test --ui` | Playwright UI mode. |
@@ -145,9 +152,11 @@ This registry is the single source of truth for focused Skills recognized by the
 
 | Skill | Domain | File scope | Rules / checks | Status |
 |-------|--------|------------|----------------|--------|
-| `pom-architect` | Page Object and UI component architecture | `src/ui/pages/**/*.ts`; `src/ui/components/**/*.ts` when introduced | Responsibilities and review rules in its `SKILL.md` | Active |
-| `test-standards` | Test implementation quality, fixtures, data, and secrets | `tests/**/*.spec.ts`, `src/fixtures/**/*.ts`, `src/data/**/*.ts`, and applicable environment/framework usage | Conventions and quality review in its `SKILL.md` | Active |
+| `pom-architect` | Page Object and UI component architecture | `src/ui/pages/**/*.ts`, `src/sites/*/ui/{components,elements}/**/*.ts` | Responsibilities and review rules in its `SKILL.md` | Active |
+| `test-standards` | Test implementation quality, fixtures, data, and secrets | `tests/**/*.spec.ts`, `src/fixtures/**/*.ts`, `src/sites/*/tests/**/*.ts`, `src/data/**/*.ts`, site data, and applicable environment/framework usage | Conventions and quality review in its `SKILL.md` | Active |
 | `spec-standards` | Specification organization and lifecycle conventions | `tests/ui/**/*.spec.ts`, `tests/*.spec.ts` | R1–R5 | Active |
+| `spec-quality-lifecycle` | Scenario preconditions, meaningful outcomes, postconditions, and deterministic execution | `tests/**/*.spec.ts` — scenario behavior and state lifecycle only | R1–R10 in its `SKILL.md`; delegates implementation concerns to their owners | Active |
+| `api-setup-teardown` | API architecture, API test infrastructure, resource lifecycle, and API/UI workflows | `src/api/**/*.ts`, `src/sites/*/api/**/*.ts`, API-specific fixtures, route mocks, and API-backed tests | R1–R11 in its `SKILL.md` | Active |
 | `git-standards` | Git workflow conventions and controlled operations | Branch names, commit history, remote state, and Git write workflows | C1–C4 and E1–E5 | Active |
 | `code-conventions` | General TypeScript language and code quality | Code concerns not otherwise owned by a focused Skill; distinct language-level concerns in owned files | Type safety, naming, imports, errors, duplication, maintainability, and dependencies | Active |
 
@@ -159,24 +168,30 @@ A file may be reviewed by more than one Skill only for different properties. Do 
 |--------------|-------------|---------|
 | `src/ui/pages/**/*.ts` | `pom-architect` | Page Object structure, locators, navigation and actions |
 | `src/ui/components/**/*.ts` | `pom-architect` | UI component structure when such files exist |
+| `src/sites/*/ui/components/**/*.ts`, `src/sites/*/ui/elements/**/*.ts` | `pom-architect` | Site-owned UI composition, locators, and interactions |
 | `src/fixtures/**/*.ts` | `test-standards` | Fixture definitions, setup, typing, and quality |
-| `src/data/**/*.ts`, `src/config/Env.ts` | `test-standards` | Test data, environment values, credential hygiene |
+| `src/sites/*/tests/**/*.ts` | `test-standards` | Site-specific fixture definitions, setup, test data, and credential hygiene |
+| `src/data/**/*.ts`, site data, `src/core/config/env.ts`, `src/config/Env.ts` | `test-standards` | Test data, environment values, credential hygiene; the legacy Env module re-exports core helpers |
 | `tests/**/*.spec.ts` — imports, fixtures, credentials, data hygiene, assertions, framework use | `test-standards` | Test implementation quality |
 | `tests/**/*.spec.ts` — folder levels, filenames, TC IDs, describe-to-feature names, functional `test.step()` use | `spec-standards` | Specification organization and lifecycle |
+| `tests/**/*.spec.ts` — scenario preconditions, postconditions, action outcomes, independence, and deterministic behavior | `spec-quality-lifecycle` | Scenario quality; delegate fixture, selector implementation, and spec structure findings to their owners |
+| `src/api/**/*.ts`, `src/sites/*/api/**/*.ts`, API-specific fixture definitions, route mocks, and API-backed tests | `api-setup-teardown` | API clients, endpoints, models, controllers, API resource lifecycle, and API/UI infrastructure; use only when API code or tests exist |
 | Non-POM `src/**/*.ts` | `test-standards` | Only its explicit environment, fixture, test data, and secret-hygiene checks; no blanket source scan is implied |
 | `playwright.config.ts` | `test-standards` | Test execution and framework usage covered by its rules |
-| `tsconfig.json` path aliases | `pom-architect` | Page Object import and alias conventions; verify runtime resolution separately |
+| `tsconfig.json` path aliases | `pom-architect`; `api-setup-teardown` for any future API alias | Page Object/API import conventions; verify runtime resolution separately |
 | `package.json`, lockfile, and cross-cutting configuration changes | `automation-architect` | Coordinate architectural decisions and delegate each focused property to its registered owner |
 | Git branch, commit, and remote state | `git-standards` | Git workflow validation and controlled operations |
 | General TypeScript source code without a focused owner | `code-conventions` | Language-level type safety, naming, imports, errors, and maintainability |
 
-There is limited wording overlap: `test-standards` asks for descriptive test and `test.describe()` titles, while `spec-standards` enforces structural TC title and describe-to-feature conventions. `spec-standards` owns those exact formats; `test-standards` owns whether the behavior description is clear and useful. The current `test-standards` and `pom-architect` repository-fit text also predates the present source tree. In particular, `pom-architect` says no Page Objects or `BasePage` exist and points `@pages/*` to `src/pages/*`, which conflicts with the verified implementation. Keep that as a reported documentation conflict; do not silently rewrite a sub-skill during unrelated work.
+There is limited wording overlap: `test-standards` asks for descriptive test and `test.describe()` titles, while `spec-standards` enforces structural TC title and describe-to-feature conventions. `spec-standards` owns those exact formats; `test-standards` owns whether the behavior description is clear and useful.
 
 ### Skill ownership principles
 
 - `pom-architect` owns Page Object and UI component architecture.
 - `test-standards` owns test implementation quality, fixtures, and test data hygiene.
 - `spec-standards` owns specification organization and lifecycle conventions.
+- `spec-quality-lifecycle` owns scenario-level preconditions, postconditions, action outcomes, and deterministic behavior; it delegates implementation and organization concerns to focused Skills.
+- `api-setup-teardown` owns API architecture and API-specific resource setup/teardown. It can be registered before `src/api/` or API tests exist; its registration does not imply implementation.
 - `git-standards` owns Git validation and controlled Git operations.
 - `code-conventions` owns general TypeScript language and maintainability concerns outside focused Skill ownership.
 - `automation-architect` coordinates the focused Skills and governs framework evolution.
@@ -217,7 +232,7 @@ Version floors below are from the official Playwright Test API documentation. Th
 |---------------|-----------------|---------|
 | `test.step()` | `1.10` | `spec-standards` meaningful step rule R5 |
 | Structured test tags (`details.tag`) | `1.42` | No active rule; future `spec-standards` tagging only after explicitly implemented |
-| Tag filtering with `--grep` | `1.42` for the structured-tag workflow | Existing `test:smoke` script; current specs contain no `@smoke` tag |
+| Tag filtering with `--grep` | `1.42` for the structured-tag workflow | Existing `test:smoke` script and current `@smoke` TC specs |
 | `trace: 'on-first-retry'` and trace recording | `1.10` | Current Playwright configuration; diagnostic capability, not an additional focused-Skill rule |
 
 Official references: [Playwright `test.step()` API](https://playwright.dev/docs/api/class-test#test-step), [test tags and annotations](https://playwright.dev/docs/test-annotations), and [trace option](https://playwright.dev/docs/api/class-testoptions#test-options-trace). Recheck minimum versions when upgrading Playwright. Do not activate tag rules just because the installed version supports them.
@@ -227,9 +242,9 @@ Official references: [Playwright `test.step()` API](https://playwright.dev/docs/
 | `tsconfig` change | Skills affected | Action required |
 |-------------------|-----------------|-----------------|
 | `target` changes | `pom-architect` | Review class field, syntax, and locator initialization examples. |
-| `strict` changes | `test-standards`, `pom-architect` | Reassess test, fixture, data, and Page Object typing expectations. |
-| New or removed path alias | `pom-architect`, `test-standards` as applicable | Update verified alias references and recheck runtime import resolution. |
-| `module` / `moduleResolution` changes | `pom-architect`, `test-standards` | Re-verify imports and actual execution resolution. |
+| `strict` changes | `test-standards`, `pom-architect`, `api-setup-teardown` when API code exists | Reassess test, fixture, data, Page Object, and API typing expectations. |
+| New or removed path alias | `pom-architect`, `test-standards`, `api-setup-teardown` when API code exists | Update verified alias references and recheck runtime import resolution. |
+| `module` / `moduleResolution` changes | `pom-architect`, `test-standards`, `api-setup-teardown` when API code exists | Re-verify imports and actual execution resolution. |
 | `noEmit` changes | `automation-architect` | Review the `typecheck` workflow and its side effects. |
 
 Only revisit rules that depend on the changed setting; do not infer compiler options from defaults.
@@ -242,6 +257,7 @@ Only revisit rules that depend on the changed setting; do not infer compiler opt
 | Fixture implementation | `test-standards` | Fixture registration, typing, setup, and consumption |
 | Test data structure | `test-standards`, potentially `pom-architect` | Data access and credential hygiene; POM only if its boundary changes |
 | Environment configuration | `test-standards` | Environment variable handling and secret safety |
+| API client, controller, API fixture, or API resource lifecycle | `api-setup-teardown`, and `test-standards` for shared fixture conventions | API contracts, dependency injection, cleanup safety, and fixture convention impacts |
 | Playwright `testDir` | `spec-standards` | Whether its declared scan scope still covers discovered specs |
 | TypeScript aliases | `pom-architect`, `test-standards` | Import examples and actual runtime resolution |
 | Git conventions | `git-standards` | Branch, commit, base, and operation rules |
@@ -254,13 +270,16 @@ When a rule or Skill is no longer applicable, mark it deprecated with reason and
 
 ### 8. Inter-Skill execution order
 
-For a full code-quality review:
+For a requested full SDLC review, first inspect repository state and `AGENTS.md`. `automation-architect` coordinates the review; apply the focused Skills in this order. Use only the relevant focused Skills for smaller tasks:
 
-1. `pom-architect` — Page Object and component architecture.
-2. `test-standards` — test implementation quality, imports, fixtures, and data hygiene.
-3. `spec-standards` — specification organization and TC conventions.
-4. `git-standards` — only when Git validation or submission is part of the request.
-5. `code-conventions` — for general TypeScript quality concerns not already owned by focused Skills; apply only distinct language-level checks in their files.
+1. Inspect repository state, project instructions, and current implementation.
+2. `pom-architect` — Page Object and component architecture.
+3. `test-standards` — test implementation, fixtures, test data, and credential hygiene.
+4. `spec-standards` — spec organization, TC conventions, and functional steps.
+5. `code-conventions` — distinct general TypeScript quality concerns across changed files.
+6. `spec-quality-lifecycle` — scenario preconditions, outcomes, independence, and deterministic behavior.
+7. `api-setup-teardown` — only when API code or API-backed tests exist; otherwise report API review as not applicable.
+8. `git-standards` — read-only documentation drift and Git convention validation; never perform Git writes as part of the review pipeline.
 
 Git validation is not mandatory for ordinary code review. Git writes must follow `git-standards` confirmation requirements. Preserve every executed Skill's findings; do not hide downstream findings because an earlier check found issues. Do not claim a check is clean unless it ran.
 
@@ -271,21 +290,28 @@ Skills are instructions for Codex, not executable functions or independent agent
 - For Page Object, component, BasePage, locator, or alias work, apply `.agents/skills/pom-architect/SKILL.md`.
 - For test implementation, fixtures, assertions, environment, and data hygiene, apply `.agents/skills/test-standards/SKILL.md`.
 - For spec hierarchy, file naming, TC IDs, describe names, and `test.step()`, apply `.agents/skills/spec-standards/SKILL.md`.
+- For scenario preconditions, expected outcomes, postconditions, independence, and deterministic behavior, apply `.agents/skills/spec-quality-lifecycle/SKILL.md` after reading the implementation, fixtures, and spec structure. Delegate fixture/data conventions to `test-standards`, locator implementation to `pom-architect`, and spec organization to `spec-standards`.
+- For API clients, endpoint organization, API fixtures, resource setup/teardown, route mocks, authentication lifecycle, or API/UI workflows, apply `.agents/skills/api-setup-teardown/SKILL.md`. Run API-specific checks only when API code or API-backed tests exist. Shared fixture conventions and credentials remain coordinated with `test-standards`.
 - For Git validation or Git workflow operations, apply `.agents/skills/git-standards/SKILL.md`.
 
 Inspect affected source after reading a Skill. Use its own finding format. Keep verified issues, recommendations, and auto-applied changes distinct.
 
 ## Full Pipeline
 
-For a full code-quality pipeline, run the focused Skills in the order `pom-architect`, `test-standards`, then `spec-standards`. Collect findings from every Skill that actually ran, distinguish auto-applied changes from manual recommendations, and report unresolved work. Run `git-standards` only when Git validation or submission is requested. Never claim zero violations without executing the relevant checks.
+Do not force the full pipeline for a narrowly scoped change. When the user requests a full SDLC review, inspect repository state first, then use the eight-stage order above, mark API review not applicable when no API code or tests exist, and run `git-standards` in read-only validation mode. Its documentation check can be incomplete when the correct base cannot be verified. Collect findings only from Skills that actually ran, distinguish corrections from recommendations, and report unresolved work. Do not claim zero violations without executing the relevant checks.
 
 ```text
 [automation-architect] PIPELINE COMPLETE
 -----------------------------------------
-pom-architect:    <findings and corrections>
-test-standards:   <findings and corrections>
-spec-standards:   <findings and corrections>
-Remaining manual fixes: <list or none>
+Repository and instructions: <verified context>
+pom-architect:              <findings / not run>
+test-standards:             <findings / not run>
+spec-standards:             <findings / not run>
+code-conventions:           <findings / not run>
+spec-quality-lifecycle:     <findings / not run>
+api-setup-teardown:         <findings / NOT APPLICABLE / not run>
+git-standards:              <DOCS_SYNC and Git validation result>
+Remaining work:             <list or none>
 -----------------------------------------
 Overall result: <PASS / ISSUES FOUND / INCOMPLETE>
 ```
@@ -294,26 +320,36 @@ Overall result: <PASS / ISSUES FOUND / INCOMPLETE>
 
 For Git conventions or workflow requests, invoke `.agents/skills/git-standards/SKILL.md`, preserve its findings, and follow its confirmation and safety requirements. A general workflow request does not bypass confirmations. Keep Git execution conditional; do not add it to ordinary code audits.
 
-## README maintenance governance
+## Documentation maintenance governance
 
 Architecture changes trigger a review of whether README information for repository users is affected; they do not automatically require a README edit.
 
-| Event | README sections potentially affected |
+| Event | Documentation sections potentially affected |
 |-------|--------------------------------------|
-| Skill added or retired | Codex Skills, Repository Structure |
+| Skill added, retired, or materially changed | Codex Skills, Repository Structure |
+| Detailed documentation added or retired | README links or overview when the document is intended for repository users |
 | Orchestration workflow added | Codex Skills |
+| `AGENTS.md` project instructions changed | Project guidance, Environment Setup, or commands as applicable |
 | Project folder added | Repository Structure |
 | npm script added | Available Commands |
+| Playwright configuration or browser project changed | Configuration, Available Commands, Prerequisites |
+| TypeScript alias changed | Framework Architecture or Environment Setup |
+| Public environment setting changed | Environment Setup |
+| `BasePage` or shared fixture contract changed | Framework Architecture |
+| API implementation added | API documentation only if it exists or is required |
+| New test cases added | Test case catalog only if the project maintains one |
+| New supported application or test suite | Project overview, Repository Structure, or test organization as applicable |
+| New supported application or test suite | Project overview, Repository Structure, or test organization as applicable |
 | Git conventions changed | Git Workflow |
 | Framework pattern introduced | Framework Architecture |
 | Course module completed | Learning Path |
 
-### README synchronization: `update readme`
+### Documentation update and drift checks
 
-This is an explicit Codex Skill workflow invoked through `$automation-architect` with the request `update readme`; it is not a background service.
+Invoke this explicit Codex Skill workflow with `update docs`, `sync documentation`, or the existing phrase `update readme`. The phrase `check documentation drift` runs a read-only check and must not modify files. These are explicit Skill invocations, not background services or automatic commit-time synchronization.
 
-| README section | Source of truth |
-|----------------|-----------------|
+| Documentation section | Source of truth |
+|-----------------------|-----------------|
 | Prerequisites | `package.json`, lockfile, actual tooling requirements |
 | Available Commands | `package.json` scripts |
 | Repository Structure | Actual repository tree and `.agents/skills/` |
@@ -321,21 +357,31 @@ This is an explicit Codex Skill workflow invoked through `$automation-architect`
 | Codex Skills | `.agents/skills/*/SKILL.md` frontmatter and instructions |
 | Git Workflow | `.agents/skills/git-standards/SKILL.md` |
 | General TypeScript code quality | `.agents/skills/code-conventions/SKILL.md` |
-| Environment Setup | `.env.example`, `src/config/Env.ts`, and actual configuration |
+| API architecture | `.agents/skills/api-setup-teardown/SKILL.md` when API code is in scope |
+| Test Organization | `tests/**/*.spec.ts` and `.agents/skills/spec-standards/SKILL.md` |
+| AI Automation SDLC | `docs/ai-automation-sdlc.md` and the current Skill registry |
+| Environment Setup | `.env.example`, `src/core/config/env.ts`, compatibility exports in `src/config/Env.ts`, and actual configuration |
 
-When invoked:
+For `check documentation drift`:
+
+1. Inspect the current branch, verified comparison base, and branch/worktree changes using read-only Git commands.
+2. Compare changed public interfaces and conventions with the applicable documentation destinations below.
+3. Report potential drift and recommended section updates; do not edit files.
+
+For `update docs`, `sync documentation`, or `update readme`:
 
 1. Read the root `README.md` and verify its actual headings before mapping sections.
-2. Inspect the sources of truth above and compare tracked information with implementation.
-3. Identify discrepancies and update only sections with verified differences.
+2. Inspect relevant sources of truth and compare their actual behavior with existing documentation.
+3. Identify affected destinations and update only sections made inaccurate or incomplete.
 4. Preserve accurate manual content. Do not rewrite course scope, learning path, or educational descriptions unless explicitly requested.
-5. Check links, commands, examples, and Markdown formatting.
-6. Report updated and unchanged sections.
+5. Do not invent a wiki, docs site, API reference, ADR collection, or test case catalog. Update optional destinations only when they exist or are explicitly required.
+6. Check links, commands, examples, and Markdown formatting.
+7. Report files modified and sections updated or left unchanged.
 
-Modify only `README.md` during a standalone sync unless the user explicitly authorizes more. If `README.md` is absent, report `INCOMPLETE` and ask before creating it or treating another file as the canonical README. This repository currently has no `README.md`, so no headings or section numbers can yet be verified. README synchronization does not happen automatically when a Skill or Git operation changes.
+Modify only the affected existing documentation during an explicit update. If `README.md` is absent, report `INCOMPLETE` rather than creating it or treating another file as canonical without authorization. Do not copy full Skill rules into the README; link or summarize each Skill's purpose and invocation. Documentation synchronization relies on explicit invocation and Git review, not automatic hooks.
 
 ```text
-[automation-architect] README SYNC
+[automation-architect] DOCUMENTATION SYNC
 -----------------------------------------
 Prerequisites:          IN SYNC | UPDATED | INCOMPLETE
 Available Commands:     IN SYNC | UPDATED | INCOMPLETE
@@ -355,14 +401,16 @@ Result: <UP TO DATE / UPDATED / INCOMPLETE>
 | Create or review Page Objects | `pom-architect` | `review Page Object` |
 | Review test implementation quality | `test-standards` | `review test quality` |
 | Review TC organization and naming | `spec-standards` | `check spec structure` |
+| Review scenario preconditions, outcomes, cleanup needs, and determinism | `spec-quality-lifecycle` | `review scenario quality` |
+| Design or review API infrastructure and resource lifecycle | `api-setup-teardown` | `review API setup and teardown` |
 | Validate or execute Git workflow | `git-standards` | `check git` / `git workflow` |
 | General TypeScript code conventions | `code-conventions` | `review TypeScript conventions` |
 | Full framework architecture review | `automation-architect` | `full architecture review` |
-| Synchronize README documentation | `automation-architect` | `update readme` |
+| Update documentation or check drift | `automation-architect` | `update docs` / `sync documentation` / `check documentation drift` |
 
 ## Governance
 
-Before adding a pattern, check whether existing code solves the need. Prefer consistency and the smallest useful abstraction. Explain tradeoffs for significant architectural changes and justify new dependencies. Do not introduce architectural modes casually: document the reason, maintain at most ten active modes, and retire obsolete modes with a reason. Do not create more Skills for minor conventions. Use Framework Growth Considerations for future ownership, compatibility, onboarding, and deprecation decisions.
+Before adding a pattern, check whether existing code solves the need. Prefer consistency and the smallest useful abstraction. Explain tradeoffs for significant architectural changes and justify new dependencies. Do not introduce architectural modes casually: document their purpose and retire obsolete modes with a reason. Do not create more Skills for minor conventions or impose a fixed maximum number of Skills or modes. Use Framework Growth Considerations for future ownership, compatibility, onboarding, and deprecation decisions.
 
 The current structure is the source of truth, not a mandate to restructure. Preserve current behavior, aliases, and folders unless a task includes an approved migration. Do not move or rename existing folders automatically.
 

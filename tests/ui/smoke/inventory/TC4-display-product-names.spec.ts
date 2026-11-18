@@ -2,7 +2,7 @@ import { expect, test } from '@fixtures';
 import { InventoryPage } from '@pages/InventoryPage';
 
 test.describe('Inventory', () => {
-  test('TC4: Every product has a visible name', async ({ authenticatedPage }) => {
+  test('TC4: Every product has a visible name', { tag: '@smoke' }, async ({ authenticatedPage }) => {
     const inventoryPage = new InventoryPage(authenticatedPage);
     const productNames = await test.step('Read inventory product names', async () => {
       return inventoryPage.getProductNames();

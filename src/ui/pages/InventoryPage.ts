@@ -13,15 +13,15 @@ export class InventoryPage extends BasePage {
   }
 
   get productCards(): Locator {
-    return this.inventoryContainer.locator('.inventory_item');
+    return this.inventoryContainer.locator('[data-test="inventory-item"]');
   }
 
   get productNameItems(): Locator {
-    return this.inventoryContainer.locator('.inventory_item_name');
+    return this.inventoryContainer.locator('[data-test="inventory-item-name"]');
   }
 
   get productPriceItems(): Locator {
-    return this.inventoryContainer.locator('.inventory_item_price');
+    return this.inventoryContainer.locator('[data-test="inventory-item-price"]');
   }
 
   get inventoryContainer(): Locator {
@@ -33,7 +33,7 @@ export class InventoryPage extends BasePage {
   }
 
   get cartBadge(): Locator {
-    return this.page.locator('.shopping_cart_badge');
+    return this.page.locator('[data-test="shopping-cart-badge"]');
   }
 
   async navigate(): Promise<void> {
@@ -49,7 +49,7 @@ export class InventoryPage extends BasePage {
   }
 
   getProductNameLocator(productName: string): Locator {
-    return this.getProduct(productName).locator('.inventory_item_name');
+    return this.getProduct(productName).locator('[data-test="inventory-item-name"]');
   }
 
   async sortBy(option: InventorySortOption): Promise<void> {

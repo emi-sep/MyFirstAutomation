@@ -7,7 +7,7 @@ description: Use when creating, reviewing, organizing, or maintaining Playwright
 
 ## Repository fit
 
-The current project uses Playwright Test with TypeScript. `playwright.config.ts` sets `testDir` to `./tests`, and the existing test is `tests/example.spec.ts`. Keep the current structure unless a feature or test volume justifies a documented expansion. A possible later structure is `tests/ui/<feature>/` and `tests/api/<feature>/`; do not create empty folders or reorganize current tests solely to match an example. Page Objects do not yet exist; when a test uses them, also consult `.agents/skills/pom-architect/SKILL.md`.
+The project uses Playwright Test with TypeScript and `playwright.config.ts` sets `testDir` to `./tests`. The existing SauceDemo suite uses specs under `tests/ui/smoke/`, Page Objects under `src/ui/pages/`, shared fixtures under `src/fixtures/`, and data under `src/data/`. DemoQA specs are also under `tests/ui/smoke/`; their site-specific API, UI components, tasks, questions, fixtures, and data live under `src/sites/demoqa/`. Preserve these site boundaries unless a feature or test volume justifies a documented expansion. When a test uses UI components or Page Objects, also consult `.agents/skills/pom-architect/SKILL.md`.
 
 ## Test conventions
 

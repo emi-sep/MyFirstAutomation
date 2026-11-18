@@ -2,7 +2,7 @@ import { expect, test } from '@fixtures';
 import { InventoryPage } from '@pages/InventoryPage';
 
 test.describe('Cart', () => {
-  test('TC7: Product can be added to and removed from cart', async ({ authenticatedPage }) => {
+  test('TC7: Product can be added to and removed from cart', { tag: '@smoke' }, async ({ authenticatedPage }) => {
     const inventoryPage = new InventoryPage(authenticatedPage);
     const productName = await test.step('Select an inventory product', async () => {
       const [selectedProductName] = await inventoryPage.getProductNames();

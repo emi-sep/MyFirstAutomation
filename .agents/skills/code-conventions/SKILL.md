@@ -20,7 +20,7 @@ This Skill covers general TypeScript language and maintainability concerns in re
 
 The current `tsconfig.json` sets `target` to `ES2022`, `module` and `moduleResolution` to `NodeNext`, `strict` to `true`, `esModuleInterop` to `true`, `forceConsistentCasingInFileNames` to `true`, and `noEmit` to `true`. It includes Node types and JSON module resolution. It does not enable `noUncheckedIndexedAccess`, `noImplicitOverride`, or a project-specific unused-symbol check. Do not claim these additional checks are active.
 
-The current package manifest declares `@playwright/test` `^1.64.1` and does not declare TypeScript directly; the lockfile records TypeScript `7.0.2`. Treat this as observed dependency state, not a convention or guarantee for a fresh install. Follow the installed toolchain and compiler diagnostics. Do not assume APIs, syntax, or compiler options beyond the versions and configuration actually in use.
+The current package manifest declares `@playwright/test` `^1.64.1` and TypeScript `^7.0.2`; the lockfile resolves Playwright `1.64.1` and TypeScript `7.0.2`. Treat these as observed dependency versions, not a convention or guarantee for a fresh install. Follow the installed toolchain and compiler diagnostics. Do not assume APIs, syntax, or compiler options beyond the versions and configuration actually in use.
 
 ## Mandatory rules
 
@@ -39,7 +39,7 @@ The current package manifest declares `@playwright/test` `^1.64.1` and does not 
 
 ### Imports and aliases
 
-- **MUST** use the existing aliases when importing from a mapped project area: `@pages/*`, `@fixtures`, `@fixtures/*`, `@data/*`, and `@config/*`.
+- **MUST** use the existing aliases when importing from a mapped project area: `@pages/*`, `@core/*`, `@sites/*`, `@fixtures`, `@fixtures/*`, `@data/*`, and `@config/*`.
 - **MUST** use `import type` for imports used only as types when that form is appropriate for the active TypeScript module configuration.
 - **MUST NOT** add, remove, or repoint a TypeScript alias as a local convenience. Alias changes require checking TypeScript and Playwright runtime resolution and coordinating with the Skill that owns the affected area.
 - **MUST** keep imports limited to used symbols. Organize imports consistently with the nearby file; do not impose a new ordering or lint rule absent from project configuration.

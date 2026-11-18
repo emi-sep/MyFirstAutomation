@@ -3,7 +3,7 @@ name: git-standards
 description: >
   Enforce and execute Git workflow conventions for Playwright + TypeScript projects.
   Provides two capabilities: Validate (read-only checks of branch names, commit messages,
-  substantive commit coverage, and README synchronization) and Execute (controlled
+  substantive commit coverage, and documentation synchronization) and Execute (controlled
   branch creation, commits, pushes, and GitHub Pull Request creation).
   Load independently for Git workflow tasks or invoke through automation-architect.
 ---
@@ -12,9 +12,9 @@ description: >
 
 ## Ownership and repository fit
 
-This skill owns Git conventions and workflow operations. It does not replace `.agents/skills/pom-architect/SKILL.md`, `.agents/skills/test-standards/SKILL.md`, or `.agents/skills/spec-standards/SKILL.md`; use those for Page Object architecture, test code quality, and specification organization respectively. A pull request may refer to their validation, but this skill does not redefine their rules.
+This skill owns Git conventions, read-only documentation-drift validation, and controlled Git operations. It does not replace `.agents/skills/pom-architect/SKILL.md`, `.agents/skills/test-standards/SKILL.md`, or `.agents/skills/spec-standards/SKILL.md`; use those for Page Object architecture, test code quality, and specification organization respectively. `$automation-architect` owns selecting and applying documentation updates. Apply `code-conventions` to embedded code examples only when TypeScript quality is in scope; this Skill does not redefine those rules.
 
-Before relying on a base branch, inspect the repository's remote and branch references. The expected base is `main`, but verify it from the remote's advertised HEAD or equivalent repository evidence. If the verified base differs from `main`, report the discrepancy and ask for clarification. Do not silently change the convention. Local `init.defaultBranch` alone does not establish a remote's current default branch.
+Before relying on a base branch, inspect the repository's remote and branch references. The project convention expects `main`, but verify the configured default from remote or repository tracking evidence rather than assuming a branch name. If the verified default differs from `main`, report the discrepancy and ask for clarification before Git operations that depend on that convention. Local `init.defaultBranch` alone does not establish a remote's current default branch.
 
 ## Project conventions
 
@@ -44,7 +44,7 @@ Valid: `feat(tc8): add products page verification`, `fix(login): correct redirec
 
 Invalid: `Added products test`, `feat: Added products test`, `fix: correct redirect after logout.`, `Feature(tc8): add products page`.
 
-Every feature branch must contain at least one `feat` or `fix` commit before merging. The PR base must be the verified main development branch, expected to be `main`. Never push directly to `main` or `master`. Use GitHub CLI (`gh`) for PR creation when available. Stage specific files only; never use `git add .`, `git add -A`, or `--no-verify`. Never rewrite published history without explicit authorization.
+Every feature branch must contain at least one `feat` or `fix` commit before merging. Use the verified repository default as the PR base; the project convention expects `main`, so report a mismatch for clarification. Never push directly to `main` or `master`. Use GitHub CLI (`gh`) for PR creation when available. Stage specific files only; never use `git add .`, `git add -A`, or `--no-verify`. Never rewrite published history without explicit authorization.
 
 ## Capability 1: Validate (read-only)
 
@@ -56,17 +56,17 @@ Validation only inspects and reports current Git state. Never modify branches, c
 
 ### Establish the base and comparison range
 
-Verify the base branch using remote configuration and refs (prefer the remote's symbolic HEAD, such as `origin/HEAD`). Use the verified remote-tracking base when available, such as `origin/main`. A local base branch may be used only after verifying it is the appropriate base. If the base cannot be established, report dependent checks as `INCOMPLETE`; do not report successful validation.
+Verify the base branch from the configured remote and repository refs. Prefer the remote's advertised default (`git ls-remote --symref <remote> HEAD`) or a valid remote symbolic ref such as `<remote>/HEAD`. Check the corresponding remote-tracking ref exists. When remote metadata is unavailable, use configured branch tracking only if it establishes the intended base; do not rely on `init.defaultBranch` or assume `origin/main`. If the correct base cannot be established, report dependent checks as `INCOMPLETE`; do not report successful validation. Do not fetch or update refs during read-only validation; report when tracking-ref freshness cannot be confirmed.
 
 ### C1 — COMMIT_FORMAT (ERROR)
 
 Inspect commits on the current branch relative to the verified base. Prefer:
 
 ```bash
-git log origin/main..HEAD --format="%s"
+git log <verified-base>..HEAD --format="%s"
 ```
 
-Use `git log main..HEAD --format="%s"` only when the local `main` has been verified as the appropriate base and the remote-tracking base is unavailable. Check every subject against the project commit pattern. If the base cannot be established, commit format validation is incomplete.
+Check every subject against the project commit pattern. If the base cannot be established, commit format validation is incomplete.
 
 ### C2 — BRANCH_NAME (ERROR)
 
@@ -82,17 +82,50 @@ The branch must match `^(test|fix)/[a-z0-9][a-z0-9-]*$`. Do not classify the ver
 
 Inspect messages relative to the verified base and require at least one commit whose type is `feat` or `fix`. A branch with only `chore`, `docs`, or `refactor` commits fails this requirement. If the base cannot be verified, report this check as incomplete.
 
-### C4 — README_SYNC (WARNING)
+### C4 — DOCS_SYNC (WARNING)
 
-Compare changed files relative to the verified base, for example:
+Triggers: `check documentation drift`, `check docs`, `docs sync`, or as part of `pre-PR check`.
 
-```bash
-git diff origin/main...HEAD --name-only
+This is a read-only check. Never edit documentation as part of Git validation. Inspect the current branch and determine its correct comparison base from repository state: prefer the remote's advertised default branch (`git ls-remote --symref <remote> HEAD`) or a valid remote symbolic ref such as `<remote>/HEAD`. Check that the selected remote-tracking ref exists and note when its tracking state may be stale. If remote default metadata is unavailable, use a branch's configured upstream only when repository evidence establishes that it is the intended default/base. Do not infer the remote default from `init.defaultBranch`, a branch name, or an assumed `origin/main`. If the base cannot be verified, report `INCOMPLETE` and do not claim a clean check.
+
+Compare the current branch with the verified base and include uncommitted changes. Inspect both branch changes (for example, `git diff <base>...HEAD --name-only`) and the worktree/index diff from the base, plus untracked paths from `git status --short`. Do not fetch or otherwise update refs during validation. If the tracking ref's freshness cannot be established, state that limitation.
+
+For changed files, identify whether the public framework interface or a documented convention changed, then check only applicable destinations:
+
+| Source change | Documentation to consider |
+|---|---|
+| `.agents/skills/**` | Existing README Skill inventory and the affected Skill registry, ownership, or invocation references |
+| `docs/**` | README link or overview only when the document is intended for repository users |
+| `AGENTS.md` | README when persistent project instructions changed |
+| `playwright.config.ts` | README configuration, browser, or command sections |
+| `package.json` scripts | README commands |
+| `tsconfig.json` aliases | README architecture or developer setup |
+| `src/config/Env.ts` or `.env.example` public settings | README environment setup |
+| `src/ui/pages/BasePage.ts` | README framework architecture |
+| `src/fixtures/**` | README fixture architecture |
+| `src/api/**` | API documentation only if it exists or is required by an established project convention |
+| New test case files | Test case catalog only if the project maintains one |
+| New supported application or test suite | README project overview, repository structure, or test organization as applicable |
+
+Inspect actual files before selecting a destination. Do not assume a docs site, wiki, catalog, ADR collection, or API reference exists; do not create documentation automatically. A missing destination is not a violation when the trigger map marks it conditional. If no maintained destination exists for a public-interface change, report that limitation for maintainers instead of inventing a file. Apply the minimal-update and single-source-of-truth principles: documentation must describe implemented behavior, and detailed rules should stay in their owning Skills.
+
+For each confirmed drift, report:
+
+```text
+[git-standards] WARNING — DOCS_SYNC
+Source: <changed file>
+Documentation: <expected document>
+Reason: <why documentation may be stale>
+Recommendation: <specific update>
 ```
 
-Architectural files are `.agents/skills/**`, `playwright.config.ts`, `package.json`, `tsconfig.json`, `src/ui/pages/BasePage.ts`, and `src/fixtures/**`. If any architectural file changed without `README.md`, emit a warning that architecture documentation may need updating before merge. This check is a warning, not a blocker. README synchronization is not automatic. When appropriate, recommend the repository README maintenance procedure with `$automation-architect`.
+If the verified comparison finds no documentation drift, report exactly:
 
-If the base cannot be verified, report README synchronization as `INCOMPLETE`. If `README.md` is absent, report that the check cannot establish synchronization rather than treating another file as its substitute without repository evidence.
+```text
+[git-standards] DOCS_SYNC — No documentation drift detected.
+```
+
+This check is advisory, not an automatic merge blocker. When documentation should change, recommend explicit invocation of `$automation-architect` with `update docs` or `sync documentation`; do not apply fixes during validation.
 
 ### Validate report
 
@@ -104,7 +137,7 @@ Use this format and retain the distinction between `PASS`, `VIOLATION`, `WARNING
 Branch name:      PASS | VIOLATION
 Commit format:    N valid / N invalid
 Commit coverage:  PASS | VIOLATION | INCOMPLETE
-README sync:      IN SYNC | WARNING | INCOMPLETE
+Documentation sync: IN SYNC | WARNING | INCOMPLETE
 Base branch:      <verified branch>
 --------------------------------------
 Issues:
@@ -127,7 +160,7 @@ For violations, recommend commands but do not execute them during validation:
 | Incorrect last commit message | `git commit --amend -m "type(scope): description"` |
 | Incorrect older commit message | Review `git rebase -i <base-branch>` |
 | Missing `feat` or `fix` commit | Add a substantive commit before merging |
-| README synchronization warning | Review README using `$automation-architect` |
+| Documentation synchronization warning | Review applicable documentation using `$automation-architect` |
 
 Do not recommend amending commits already pushed without explaining the implications and obtaining required authorization.
 
@@ -283,4 +316,4 @@ Next action: <specific next action>
 
 ## Codex compatibility
 
-Use this Codex Skill and explicit skill-file invocation conventions. Do not depend on Kiro paths, IDE features, Modes, commands, or activation behavior.
+Use the recognized Codex Skill mention and explicit skill-file invocation conventions supported by the current environment.

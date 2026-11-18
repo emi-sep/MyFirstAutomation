@@ -11,6 +11,8 @@
 
     "paths": {
       "@pages/*": ["./src/ui/pages/*"],
+      "@core/*": ["./src/core/*"],
+      "@sites/*": ["./src/sites/*"],
       "@fixtures": ["./src/fixtures/index"],
       "@fixtures/*": ["./src/fixtures/*"],
       "@data/*": ["./src/data/*"],

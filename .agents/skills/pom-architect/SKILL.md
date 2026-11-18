@@ -7,7 +7,7 @@ description: Use when designing, reviewing, creating, or changing Playwright Pag
 
 ## Repository fit
 
-The current repository has no Page Objects or `BasePage`. Its source code currently includes `src/config/Env.ts`, and its tests live in `tests/`. Treat POM as a pattern to introduce when a task benefits from it, not as an existing enforced convention. Do not move files to the proposed `src/ui/` tree as part of routine feature work. If introducing Page Objects, prefer `src/pages/` initially because the TypeScript aliases already map `@pages/*` there; propose `src/ui/pages/` only as a deliberate migration with aligned paths and imports.
+The existing SauceDemo Page Objects and shared `BasePage` are under `src/ui/pages/`; DemoQA UI components are site-owned under `src/sites/demoqa/ui/`. Tests live under `tests/`. The `@pages/*` TypeScript path alias maps to `src/ui/pages/*`. Preserve these boundaries and aliases unless a deliberate migration is planned with aligned paths and imports.
 
 ## Responsibilities
 
@@ -44,7 +44,7 @@ Adapt it to existing code before introducing it. A navigation method is not requ
 
 ## Locator and page object example
 
-Use meaningful, lazy locator getters. For the current repository, `@pages/*` is configured to resolve to `src/pages/*` under TypeScript:
+Use meaningful, lazy locator getters. For the current repository, `@pages/*` is configured to resolve to `src/ui/pages/*` under TypeScript:
 
 ```typescript
 import { BasePage } from '@pages/BasePage';
@@ -74,7 +74,7 @@ This is illustrative; match actual application labels and behavior. Do not add a
 
 ## Imports and aliases
 
-Existing TypeScript mappings are `@pages/*` → `src/pages/*`, `@fixtures/*` → `src/fixtures/*`, `@data/*` → `src/data/*`, and `@config/*` → `src/config/*`. There are no current Page Objects or fixture modules to establish an import pattern. Add mappings for components/helpers/API only when those directories are introduced and used. TypeScript `paths` do not rewrite emitted JavaScript. Do not claim an alias works in Playwright runtime merely because it typechecks; verify resolution in the actual Playwright/TypeScript execution path before adopting it. Root config files may use relative imports, as `playwright.config.ts` currently does.
+Existing TypeScript mappings include `@pages/*` → `src/ui/pages/*`, `@core/*` → `src/core/*`, `@sites/*` → `src/sites/*`, `@fixtures` and `@fixtures/*` → `src/fixtures/`, `@data/*` → `src/data/*`, and `@config/*` → `src/config/*`. DemoQA UI components and API code use the `@sites/*` namespace; keep API behavior out of UI components. Add mappings only when a real project area needs them. TypeScript `paths` do not rewrite emitted JavaScript. Do not claim an alias works in Playwright runtime merely because it typechecks; verify resolution in the actual Playwright/TypeScript execution path before adopting it. Root config files may use relative imports, as `playwright.config.ts` currently does.
 
 ## Review and reporting
 

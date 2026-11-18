@@ -2,7 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 import path from 'node:path';
 
-import { getEnvironment } from './src/config/Env';
+import { getEnvironment } from './src/core/config/env';
 
 // Load environment variables
 dotenv.config({

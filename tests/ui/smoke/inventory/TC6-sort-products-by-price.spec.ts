@@ -2,7 +2,7 @@ import { expect, test } from '@fixtures';
 import { InventoryPage } from '@pages/InventoryPage';
 
 test.describe('Inventory', () => {
-  test('TC6: Products sort by ascending price', async ({ authenticatedPage }) => {
+  test('TC6: Products sort by ascending price', { tag: '@smoke' }, async ({ authenticatedPage }) => {
     const inventoryPage = new InventoryPage(authenticatedPage);
 
     const numericPrices = await test.step('Sort products by ascending price', async () => {

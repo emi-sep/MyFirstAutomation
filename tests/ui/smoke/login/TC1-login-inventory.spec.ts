@@ -2,7 +2,7 @@ import { expect, test } from '@fixtures';
 import { users } from '@data/users';
 
 test.describe('Login', () => {
-  test('TC1: Standard user logs in and views inventory', async ({ loginPage, page }) => {
+  test('TC1: Standard user logs in and views inventory', { tag: '@smoke' }, async ({ loginPage, page }) => {
     const user = users.sauceDemo;
 
     await test.step('Open the login page', async () => {
