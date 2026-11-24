@@ -103,6 +103,26 @@ Fix: Move to the appropriate suite and feature directory after reviewing imports
 Status: REPORTED
 ```
 
+## Data-impact tag syntax
+
+Use Playwright's structured test details `tag` option for data-impact labels. This Skill owns syntax; `spec-data-standard` owns the meaning and when a tag is required.
+
+| Tag | Use |
+|---|---|
+| `@mutates-data` | Test or fixture creates, changes, or deletes persistent data |
+| `@read-only` | Test performs no persistent mutation |
+| `@env:<name>` | Test is supported only in the named environment |
+
+Combine tags with the installed Playwright syntax, for example:
+
+```typescript
+test('TC<N>: Create an item', { tag: ['@mutates-data', '@smoke'] }, async ({ page }) => {
+  // Test body
+});
+```
+
+Do not infer environment names or mark a mutating test `@read-only`. Existing tag policy for `@smoke` and `@regression` remains unchanged.
+
 ## Scan scope
 
 Apply R1–R5 to every matching file in both `tests/ui/**/*.spec.ts` and `tests/*.spec.ts`. Do not silently exclude files because they are outside the target hierarchy. If no files match, report that the scan scope was empty.
@@ -121,4 +141,4 @@ Do not perform repository-wide restructuring merely because this skill was loade
 
 ## Future extension points
 
-These are possible future capabilities, not active rules: test tagging conventions such as `@smoke` and `@regression`; TC-level Playwright tags; lifecycle policies for `beforeAll` and `afterAll`; setup and teardown conventions; and restrictions on `test.only` and `test.skip`. Do not enforce them unless they are explicitly implemented as rules in this skill.
+These remain possible future capabilities: lifecycle policies for `beforeAll` and `afterAll`; setup and teardown conventions; and restrictions on `test.only` and `test.skip`. The data-impact tag syntax above is active; tag meaning and data-impact classification remain owned by `spec-data-standard`.

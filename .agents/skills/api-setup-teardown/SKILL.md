@@ -33,6 +33,7 @@ Adapt the structure to established repository conventions if API code already ex
 ## Ownership boundaries
 
 - `test-standards` owns general Playwright fixture conventions, test data, credentials, and environment hygiene. This Skill owns API-specific client/controller injection and lifecycle semantics; coordinate changes to shared fixture conventions rather than duplicating them.
+- An API resource fixture may use `{ scope: 'worker' }` when the resource is intentionally owned for that worker; match teardown to fixture lifetime. `spec-data-standard` owns identity isolation and worker partitioning checks.
 - `spec-quality-lifecycle` owns scenario-level internal test quality and independence. This Skill owns API resource setup/teardown mechanics and API/UI hybrid infrastructure.
 - `spec-standards` owns spec names, IDs, hierarchy, and `test.step()` conventions.
 - `pom-architect` owns Page Object and component architecture. API code must not be placed in Page Objects.
@@ -57,7 +58,7 @@ Controllers receive the API client through dependency injection. They must not i
 
 ### R4 - FIXTURE_OWNERSHIP
 
-Inject shared API clients, controllers, and test resources through Playwright fixtures. Specs should not instantiate complex API infrastructure directly. Follow current `src/fixtures/` patterns and avoid fixture abstractions for trivial one-off operations without a clear benefit.
+Inject shared API clients, controllers, and test resources through Playwright fixtures. Specs should not instantiate complex API infrastructure directly. Follow current `src/fixtures/` patterns and avoid fixture abstractions for trivial one-off operations without a clear benefit. This rule also applies to `{ scope: 'worker' }` resources: the fixture owns the resource, exposes it to dependent tests, and must pair its teardown with the worker lifetime. Data identity isolation and worker partitioning belong to `spec-data-standard`.
 
 ### R5 - SETUP_TEARDOWN_SYMMETRY
 
@@ -107,6 +108,7 @@ Prefer names that communicate resource or lifecycle intent, adapted to repositor
 |---|---|
 | Resource controller | `bookController` |
 | Resource created for test | `createdBook` |
+| Resource owned once per worker | `worker<Resource>` (for example, `workerUser`) |
 | Clean initial state with cleanup | `cleanBookshelf` |
 | Reusable route mock | `mockBooks` |
 
@@ -118,7 +120,7 @@ Inspect existing API architecture, fixture wiring, resource lifecycle, endpoint 
 
 ### Implement
 
-Implement API infrastructure only when explicitly requested. Before changing API modules, confirm the target API and contract, inspect environment and authentication, identify resources and operations, establish setup/teardown needs, and determine whether an alias or dependency is actually required. Preserve existing UI automation behavior. Validate changes with the relevant typecheck and tests when feasible, and report exactly what ran.
+Implement API infrastructure only when explicitly requested. Before changing API modules, confirm the target API and contract, inspect environment and authentication, identify resources and operations, establish setup/teardown needs, and determine whether an alias or dependency is actually required. When identity provisioning is required and supported by the API contract, provide focused `create<Identity>` and `delete<Identity>` controller operations; verify actual implementations before claiming they exist. Preserve existing UI automation behavior. Validate changes with the relevant typecheck and tests when feasible, and report exactly what ran.
 
 ## Finding format
 

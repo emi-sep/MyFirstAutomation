@@ -1,14 +1,29 @@
 ---
 name: spec-quality-lifecycle
-description: Review or improve Playwright test scenarios for complete preconditions, meaningful outcomes, and deterministic execution. Use alongside test-standards and spec-standards; it does not own fixture, Page Object, or spec organization rules.
+description: Review or improve Playwright scenarios and orchestrate their lifecycle, including test-data robustness handoffs. Use for scenario quality or lifecycle requests; delegate data isolation and environment portability to spec-data-standard, and fixture, Page Object, and spec organization implementation to their owners.
 ---
 
 # Specification quality and lifecycle
 
 Use this Skill for scenario-level quality: whether a test starts from a valid state, exercises a defined behavior, observes meaningful results, and finishes without leaking state or hiding failures. It complements the repository's implementation and organization Skills; it does not replace them.
 
+## Lifecycle phases
+
+| Phase | Responsibility and owner |
+|---|---|
+| 1. Specify | `spec-requirements-standard` owns TC document readiness. |
+| 2. Arrange | `spec-data-standard` owns data isolation/sourcing (M1–M3); `api-setup-teardown` owns API provisioning mechanics. |
+| 3. Act | `pom-architect` owns Page Objects; this Skill evaluates scenario actions, waits, and locators at the scenario level. |
+| 4. Assert | This Skill owns scenario assertion specificity; `spec-data-standard` M4 supplies expected-value source guidance (R13). |
+| 5. Run | `spec-data-standard` M5 gathers robustness execution evidence; CI owns reporting. |
+
+Debugging is cross-cutting across all five phases. This Skill remains the lifecycle orchestrator; the added phase owners do not create another orchestration mode.
+
 ## Ownership boundaries
 
+- `spec-requirements-standard` owns phase 1 (Specify) for `docs/test-cases/**/*.md`: traceability, provisioned preconditions, data declarations, exact oracles, postconditions, independence, coverage, and automation readiness. Invoke its M0 before automating a documented TC; use M1–M4 for requested writing, refinement, coverage, or handoff. Do not copy Q1–Q13 into this orchestrator.
+- `spec-data-standard` owns phase 2 data Arrange (M1–M3), phase 4 expected-value sources (M4), and phase 5 robustness evidence (M5). Invoke it when the request involves data isolation, environment portability, exact data values, or parallel robustness. Do not duplicate R1–R15.
+- The lifecycle orchestrator owns the complete lifecycle. Specification readiness does not replace the scenario implementation review below. In Create or improve mode, require a Ready M4 handoff before code generation; report gaps for an incomplete TC and do not silently invent missing requirements.
 - `pom-architect` owns Page Object and component structure and implementation of UI locators and actions. You may identify a fragile selector used by a scenario, but report its implementation correction to `pom-architect`; do not prescribe or edit a Page Object under this Skill.
 - `test-standards` owns test implementation conventions, fixtures, fixture lifecycle, test data, credentials, and environment hygiene. Delegate those concerns instead of duplicating its findings.
 - `spec-standards` owns spec folder hierarchy, filenames, TC IDs, describe titles, and functional `test.step()` conventions.
@@ -22,11 +37,17 @@ Read the relevant Skills and inspect the actual repository patterns before apply
 
 ### Review (default)
 
-Keep the review read-only unless the user explicitly requests fixes. Discover all in-scope specs, then inspect the applicable fixture and Page Object implementations, test data, and Playwright configuration needed to understand test state and execution. Evaluate each rule R1–R10 below. Cite exact relative paths and line numbers. Separate confirmed violations from recommendations, and delegate findings that belong to another Skill.
+Keep the review read-only unless the user explicitly requests fixes. Discover all in-scope specs, then inspect the applicable fixture and Page Object implementations, test data, and Playwright configuration needed to understand test state and execution. Evaluate each rule R1–R10 below; when evaluating R10 for data-bearing assertions, cross-check expected-value sources against `spec-data-standard` R13. Cite exact relative paths and line numbers. Separate confirmed violations from recommendations, and delegate findings that belong to another Skill.
 
 ### Create or improve
 
-Use acceptance criteria supplied by the user or verified from project artifacts. Do not invent product requirements. Before editing, identify the scenario's starting state, actions, expected outcomes, shared fixtures/Page Objects, and any persistent state. Preserve existing behavior and project conventions. Make only requested changes, then run relevant validation when feasible and report exactly what ran. Keep assertions in specs as required by this repository's architecture.
+Start with `spec-requirements-standard` phase 1. Use its M4 handoff as the input contract; if no Ready handoff exists, report M0 gaps and do not generate automation from unresolved assumptions.
+
+0. **Collect:** record `dataSource` (created, mock, dataset, or discovery) and `expectedValues` from the handoff or verified project requirements. Do not invent either.
+1. Identify the initial state, actions, shared fixtures/Page Objects, and persistent data.
+2. Preserve existing behavior and project conventions while implementing only the requested workflow.
+3. **Assert:** consult `spec-data-standard` M4/R13 for data-bearing assertions. Assert the collected exact values with appropriate value matchers and their identified source; do not duplicate the complete R13 rule here.
+4. Run relevant validation when feasible and report exactly what ran. Keep assertions in specs as required by repository architecture.
 
 ## Mandatory scenario-quality rules
 
@@ -68,7 +89,7 @@ When navigation is part of the scenario, verify the intended destination or resu
 
 ### R10 — ASSERTION_SPECIFICITY
 
-Assertions must verify the stated requirement and be specific enough to detect its failure. Do not over-assert incidental presentation or unrelated details. Do not invent requirements that are absent from acceptance criteria or verified project behavior.
+Assertions must verify the stated requirement and be specific enough to detect its failure. For data-bearing values, state the expected-value source and cross-check `.agents/skills/spec-data-standard/SKILL.md` R13; use an appropriate exact-value matcher when the requirement calls for value verification. Do not over-assert incidental presentation or unrelated details. Do not invent requirements that are absent from acceptance criteria or verified project behavior.
 
 ## Finding format
 

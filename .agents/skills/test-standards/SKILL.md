@@ -66,7 +66,7 @@ Adapt this shape to the existing fixture setup if one is introduced. Avoid repea
 
 ## Test data and secrets
 
-The repository's `.gitignore` excludes `.env` and `.env.*`, and `.env.example` contains placeholders. Preserve that protection. Never hardcode real credentials, commit `.env`, or place secrets in `.env.example`, test titles, logs, or reports. Read secrets from environment configuration and keep test data separate from test logic when practical. Do not depend on production user accounts.
+The repository's `.gitignore` excludes `.env` and `.env.*`, and `.env.example` contains placeholders. Preserve that protection. Never hardcode real credentials, commit `.env`, or place secrets in `.env.example`, test titles, logs, or reports. Read secrets from environment configuration and keep test data separate from test logic when practical. Do not depend on production user accounts. `spec-data-standard` owns data classification, identity isolation, parallel collision checks, environment portability, and expected-value sources; apply it for those properties without duplicating its findings. Credential storage and hygiene remain here.
 
 ## Quality review
 

@@ -10,7 +10,7 @@ test.describe('Books', () => {
   test.use({ baseURL: getEnvironment().DEMOQA_BASE_URL });
   test.setTimeout(60_000);
 
-  test('TC02: Add a book to the user collection @smoke', { tag: '@smoke' }, async ({ demoQaActor }) => {
+  test('TC02: Add a book to the user collection @smoke', { tag: ['@smoke', '@mutates-data'] }, async ({ demoQaActor }) => {
     const api = demoQaActor.ability(UseBookStoreApi);
     const selectedBook = demoQaBooks.gitPocketGuide;
 

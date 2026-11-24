@@ -10,7 +10,7 @@ test.describe('Books', () => {
   test.use({ baseURL: getEnvironment().DEMOQA_BASE_URL });
   test.setTimeout(60_000);
 
-  test('TC08: Delete one book and retain the other @smoke', { tag: '@smoke' }, async ({ demoQaActor }) => {
+  test('TC08: Delete one book and retain the other @smoke', { tag: ['@smoke', '@mutates-data'] }, async ({ demoQaActor }) => {
     const api = demoQaActor.ability(UseBookStoreApi);
     const deletedBook = demoQaBooks.gitPocketGuide;
     const remainingBook = demoQaBooks.learningJavaScriptDesignPatterns;

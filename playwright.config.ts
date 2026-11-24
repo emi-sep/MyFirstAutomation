@@ -20,6 +20,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // spec-data: serial — CI uses remote services and the seeded DemoQA catalogue; per-test identity
+  // isolation does not establish external-service stability under parallel load.
   workers: process.env.CI ? 1 : undefined,
 
   // Timeouts
