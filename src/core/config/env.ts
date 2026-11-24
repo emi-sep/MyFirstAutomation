@@ -1,6 +1,7 @@
 export interface EnvironmentConfig {
   BASE_URL: string;
   DEMOQA_BASE_URL: string;
+  allowDestructiveCleanup: boolean;
 }
 
 export interface TestCredentials {
@@ -17,6 +18,20 @@ function getRequiredEnv(name: string): string {
     );
   }
   return value;
+}
+
+function getOptionalBooleanEnv(name: string, defaultValue: boolean): boolean {
+  const value = process.env[name]?.trim().toLowerCase();
+  if (!value) {
+    return defaultValue;
+  }
+  if (value === 'true') {
+    return true;
+  }
+  if (value === 'false') {
+    return false;
+  }
+  throw new Error(`[ENV CONFIG ERROR] ${name} must be either "true" or "false".`);
 }
 
 function validateBaseUrl(name: string, url: string): string {
@@ -37,7 +52,8 @@ export function getEnvironment(): EnvironmentConfig {
     DEMOQA_BASE_URL: validateBaseUrl(
       'DEMOQA_BASE_URL',
       process.env.DEMOQA_BASE_URL?.trim() || 'https://demoqa.com'
-    )
+    ),
+    allowDestructiveCleanup: getOptionalBooleanEnv('ALLOW_DESTRUCTIVE_CLEANUP', false)
   };
 }
 

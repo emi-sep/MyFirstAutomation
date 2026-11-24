@@ -61,12 +61,12 @@ Relevant current repository tree (generated output, `.git`, and `node_modules` o
 
 ```text
 src/
-  core/config/            Shared environment implementation
+  core/config/            Shared environment implementation; spec-data-standard owns test-environment resolution
   core/actors/            Shared Screenplay contracts and actor factory
   config/                 Compatibility re-export for environment helpers
-  data/                   SauceDemo data (users.ts)
-  fixtures/               SauceDemo Playwright fixtures
-  sites/demoqa/           DemoQA API, UI, tasks, questions, fixture, and data
+  data/                   SauceDemo data (users.ts); spec-data-standard owns data robustness
+  fixtures/               SauceDemo Playwright fixtures; spec-data-standard owns data isolation checks
+  sites/demoqa/           DemoQA API, UI, tasks, questions, fixture, and site data; data robustness owner: spec-data-standard
   ui/pages/               BasePage, LoginPage, InventoryPage
 tests/ui/smoke/           Feature-organized SauceDemo and DemoQA TC specs
 .agents/skills/           This orchestrator and focused Skills
@@ -81,7 +81,9 @@ The existing SauceDemo Page Objects remain under `src/ui/pages/`. DemoQA API cod
 | `src/ui/pages/` | Page Objects and shared `BasePage` | `pom-architect` |
 | `src/fixtures/` | Test fixture registration and setup | `test-standards` |
 | `src/data/` | Test data | `test-standards` |
+| `src/data/**/*.ts`, `src/sites/*/data/**` | Test data typing, classification, uniqueness and environment-dependent data | `spec-data-standard` (distinct from general implementation conventions in `test-standards`) |
 | `src/config/` | Environment configuration used by test execution | `test-standards` for secrets/config quality; orchestrator for cross-cutting changes |
+| `src/core/config/env.ts` | Shared environment access and validation | `test-standards` for secrets hygiene; `spec-data-standard` for environment selection and portability |
 | `tests/` | Playwright test specifications | `test-standards` for implementation quality; `spec-standards` for organization and lifecycle properties |
 | `docs/` | Detailed technical and governance references | `automation-architect` coordinates documentation updates; focused Skills remain authoritative for their rules |
 | `.agents/skills/` | Codex Skill instructions | `automation-architect` coordinates; each Skill owns its registered domain |
@@ -150,15 +152,17 @@ export class BasePage {
 
 This registry is the single source of truth for focused Skills recognized by the framework. Skill instructions are read and applied explicitly; they are not executable functions or automatically running agents. The orchestrator is not counted as a sub-skill.
 
-| Skill | Domain | File scope | Rules / checks | Status |
-|-------|--------|------------|----------------|--------|
-| `pom-architect` | Page Object and UI component architecture | `src/ui/pages/**/*.ts`, `src/sites/*/ui/{components,elements}/**/*.ts` | Responsibilities and review rules in its `SKILL.md` | Active |
-| `test-standards` | Test implementation quality, fixtures, data, and secrets | `tests/**/*.spec.ts`, `src/fixtures/**/*.ts`, `src/sites/*/tests/**/*.ts`, `src/data/**/*.ts`, site data, and applicable environment/framework usage | Conventions and quality review in its `SKILL.md` | Active |
-| `spec-standards` | Specification organization and lifecycle conventions | `tests/ui/**/*.spec.ts`, `tests/*.spec.ts` | R1–R5 | Active |
-| `spec-quality-lifecycle` | Scenario preconditions, meaningful outcomes, postconditions, and deterministic execution | `tests/**/*.spec.ts` — scenario behavior and state lifecycle only | R1–R10 in its `SKILL.md`; delegates implementation concerns to their owners | Active |
-| `api-setup-teardown` | API architecture, API test infrastructure, resource lifecycle, and API/UI workflows | `src/api/**/*.ts`, `src/sites/*/api/**/*.ts`, API-specific fixtures, route mocks, and API-backed tests | R1–R11 in its `SKILL.md` | Active |
-| `git-standards` | Git workflow conventions and controlled operations | Branch names, commit history, remote state, and Git write workflows | C1–C4 and E1–E5 | Active |
-| `code-conventions` | General TypeScript language and code quality | Code concerns not otherwise owned by a focused Skill; distinct language-level concerns in owned files | Type safety, naming, imports, errors, duplication, maintainability, and dependencies | Active |
+| Skill | Domain | File scope | Rules / checks | Added | Status |
+|-------|--------|------------|----------------|-------|--------|
+| `pom-architect` | Page Object and UI component architecture | `src/ui/pages/**/*.ts`, `src/sites/*/ui/{components,elements}/**/*.ts` | Responsibilities and review rules in its `SKILL.md` | — | Active |
+| `test-standards` | Test implementation quality, fixtures, data, and secrets | `tests/**/*.spec.ts`, `src/fixtures/**/*.ts`, `src/sites/*/tests/**/*.ts`, `src/data/**/*.ts`, site data, and applicable environment/framework usage | Conventions and quality review in its `SKILL.md` | — | Active |
+| `spec-standards` | Specification organization, lifecycle conventions, and structured tag syntax | `tests/ui/**/*.spec.ts`, `tests/*.spec.ts` | R1–R5; data-impact tag syntax | — | Active |
+| `spec-quality-lifecycle` | Scenario preconditions, meaningful outcomes, postconditions, and deterministic execution | `tests/**/*.spec.ts` — scenario behavior and state lifecycle only | R1–R10 in its `SKILL.md`; delegates implementation concerns to their owners | — | Active |
+| `spec-requirements-standard` | TC specification: traceability, preconditions, data, oracles, postconditions, readiness | `docs/test-cases/**/*.md` | Q1–Q13 · M0–M4 | M6 | Active |
+| `spec-data-standard` | Test data: classification, isolation, sourcing, environments, expected values | `src/data/**`, `src/sites/*/data/**`, config, fixtures, `playwright.config.ts`, `tests/**/*.spec.ts` | R1–R15 · M0–M5 | M6 | Active |
+| `api-setup-teardown` | API architecture, API test infrastructure, resource lifecycle, and API/UI workflows | `src/api/**/*.ts`, `src/sites/*/api/**/*.ts`, API-specific fixtures, route mocks, and API-backed tests | R1–R11 in its `SKILL.md` | — | Active |
+| `git-standards` | Git workflow conventions and controlled operations | Branch names, commit history, remote state, and Git write workflows | C1–C4 and E1–E5 | — | Active |
+| `code-conventions` | General TypeScript language and code quality | Code concerns not otherwise owned by a focused Skill; distinct language-level concerns in owned files | Type safety, naming, imports, errors, duplication, maintainability, and dependencies | — | Active |
 
 ### Scan Scope Ownership
 
@@ -173,8 +177,14 @@ A file may be reviewed by more than one Skill only for different properties. Do 
 | `src/sites/*/tests/**/*.ts` | `test-standards` | Site-specific fixture definitions, setup, test data, and credential hygiene |
 | `src/data/**/*.ts`, site data, `src/core/config/env.ts`, `src/config/Env.ts` | `test-standards` | Test data, environment values, credential hygiene; the legacy Env module re-exports core helpers |
 | `tests/**/*.spec.ts` — imports, fixtures, credentials, data hygiene, assertions, framework use | `test-standards` | Test implementation quality |
-| `tests/**/*.spec.ts` — folder levels, filenames, TC IDs, describe-to-feature names, functional `test.step()` use | `spec-standards` | Specification organization and lifecycle |
+| `tests/**/*.spec.ts` — folder levels, filenames, TC IDs, describe-to-feature names, functional `test.step()` use, structured tag syntax | `spec-standards` | Specification organization and lifecycle |
 | `tests/**/*.spec.ts` — scenario preconditions, postconditions, action outcomes, independence, and deterministic behavior | `spec-quality-lifecycle` | Scenario quality; delegate fixture, selector implementation, and spec structure findings to their owners |
+| `docs/test-cases/**/*.md` | `spec-requirements-standard` | Specification content quality, Q1–Q13; docs synchronization checks TC row existence only |
+| `src/data/**/*.ts`, `src/sites/*/data/**/*.ts` | `spec-data-standard` | Data shape, typing, uniqueness, and environment-dependent values (R2, R3, R6, R10) |
+| `src/core/config/env.ts`, `src/config/Env.ts` | `spec-data-standard` | Test environment selection and validation (R9); secret hygiene remains `test-standards` |
+| `src/fixtures/**/*.ts`, `src/sites/*/tests/**/*.ts` | `spec-data-standard` | Data identity isolation, uniqueness, scoped cleanup, and session ownership (R1–R3, R12, R15); API mechanics remain `api-setup-teardown` |
+| `playwright.config.ts` | `spec-data-standard` | Data-related parallelism suppression (R4); runner configuration quality remains `test-standards` |
+| `tests/**/*.spec.ts` | `spec-data-standard` | Data sourcing, global data assertions, data-driven titles, environment literals, impact tags, and expected-value sources (R4–R11, R13–R14); implementation and scenario properties remain with their owners |
 | `src/api/**/*.ts`, `src/sites/*/api/**/*.ts`, API-specific fixture definitions, route mocks, and API-backed tests | `api-setup-teardown` | API clients, endpoints, models, controllers, API resource lifecycle, and API/UI infrastructure; use only when API code or tests exist |
 | Non-POM `src/**/*.ts` | `test-standards` | Only its explicit environment, fixture, test data, and secret-hygiene checks; no blanket source scan is implied |
 | `playwright.config.ts` | `test-standards` | Test execution and framework usage covered by its rules |
@@ -191,6 +201,8 @@ There is limited wording overlap: `test-standards` asks for descriptive test and
 - `test-standards` owns test implementation quality, fixtures, and test data hygiene.
 - `spec-standards` owns specification organization and lifecycle conventions.
 - `spec-quality-lifecycle` owns scenario-level preconditions, postconditions, action outcomes, and deterministic behavior; it delegates implementation and organization concerns to focused Skills.
+- `spec-requirements-standard` owns TC document content quality. `spec-quality-lifecycle` invokes it for phase 1 and remains owner of the full lifecycle and implemented scenario review.
+- `spec-data-standard` owns data robustness properties across modules, configuration, fixtures, runner settings, and specs. `test-standards` retains fixture/test implementation and credential hygiene; `api-setup-teardown` retains API lifecycle mechanics; `spec-quality-lifecycle` retains general scenario independence and assertion specificity.
 - `api-setup-teardown` owns API architecture and API-specific resource setup/teardown. It can be registered before `src/api/` or API tests exist; its registration does not imply implementation.
 - `git-standards` owns Git validation and controlled Git operations.
 - `code-conventions` owns general TypeScript language and maintainability concerns outside focused Skill ownership.
@@ -257,6 +269,7 @@ Only revisit rules that depend on the changed setting; do not infer compiler opt
 | Fixture implementation | `test-standards` | Fixture registration, typing, setup, and consumption |
 | Test data structure | `test-standards`, potentially `pom-architect` | Data access and credential hygiene; POM only if its boundary changes |
 | Environment configuration | `test-standards` | Environment variable handling and secret safety |
+| Environment selector / `TEST_ENV` / new environment variable | `spec-data-standard`, `test-standards`; `spec-code-standard` if introduced | Recheck R9, typed configuration consumers, and credential examples with the verified credential owner; `spec-code-standard` is absent here |
 | API client, controller, API fixture, or API resource lifecycle | `api-setup-teardown`, and `test-standards` for shared fixture conventions | API contracts, dependency injection, cleanup safety, and fixture convention impacts |
 | Playwright `testDir` | `spec-standards` | Whether its declared scan scope still covers discovered specs |
 | TypeScript aliases | `pom-architect`, `test-standards` | Import examples and actual runtime resolution |
@@ -273,13 +286,15 @@ When a rule or Skill is no longer applicable, mark it deprecated with reason and
 For a requested full SDLC review, first inspect repository state and `AGENTS.md`. `automation-architect` coordinates the review; apply the focused Skills in this order. Use only the relevant focused Skills for smaller tasks:
 
 1. Inspect repository state, project instructions, and current implementation.
-2. `pom-architect` — Page Object and component architecture.
-3. `test-standards` — test implementation, fixtures, test data, and credential hygiene.
-4. `spec-standards` — spec organization, TC conventions, and functional steps.
-5. `code-conventions` — distinct general TypeScript quality concerns across changed files.
-6. `spec-quality-lifecycle` — scenario preconditions, outcomes, independence, and deterministic behavior.
+2. `spec-requirements-standard` M0 — assess `docs/test-cases/**` before code generation; report only, except explicitly authorized Q13 fixes. List Incomplete TCs as manual items and state their gaps.
+3. `pom-architect` — Page Object and component architecture.
+4. `test-standards` — test implementation, fixtures, test data, and credential hygiene.
+5. `spec-standards` — spec organization, TC conventions, and functional steps.
+6. `code-conventions` — distinct general TypeScript quality concerns across changed files.
 7. `api-setup-teardown` — only when API code or API-backed tests exist; otherwise report API review as not applicable.
-8. `git-standards` — read-only documentation drift and Git convention validation; never perform Git writes as part of the review pipeline.
+8. `spec-data-standard` — data robustness rules M1–M4 over resolved data, config, fixtures, runner settings, and specs. Apply only safe auto-fixes; report all manual items.
+9. `spec-quality-lifecycle` — implemented scenario preconditions, outcomes, independence, and deterministic behavior; it remains the lifecycle orchestrator.
+10. `git-standards` — read-only documentation drift and Git convention validation; never perform Git writes as part of the review pipeline.
 
 Git validation is not mandatory for ordinary code review. Git writes must follow `git-standards` confirmation requirements. Preserve every executed Skill's findings; do not hide downstream findings because an earlier check found issues. Do not claim a check is clean unless it ran.
 
@@ -290,7 +305,8 @@ Skills are instructions for Codex, not executable functions or independent agent
 - For Page Object, component, BasePage, locator, or alias work, apply `.agents/skills/pom-architect/SKILL.md`.
 - For test implementation, fixtures, assertions, environment, and data hygiene, apply `.agents/skills/test-standards/SKILL.md`.
 - For spec hierarchy, file naming, TC IDs, describe names, and `test.step()`, apply `.agents/skills/spec-standards/SKILL.md`.
-- For scenario preconditions, expected outcomes, postconditions, independence, and deterministic behavior, apply `.agents/skills/spec-quality-lifecycle/SKILL.md` after reading the implementation, fixtures, and spec structure. Delegate fixture/data conventions to `test-standards`, locator implementation to `pom-architect`, and spec organization to `spec-standards`.
+- For scenario preconditions, expected outcomes, postconditions, independence, and deterministic behavior, apply `.agents/skills/spec-quality-lifecycle/SKILL.md` after reading the implementation, fixtures, and spec structure. Delegate data identity/environment/value-source concerns to `spec-data-standard`, fixture implementation and credentials to `test-standards`, API mechanics to `api-setup-teardown`, locator implementation to `pom-architect`, and spec organization to `spec-standards`.
+- For data classification, parallel isolation, data sourcing, environment portability, controlled expected values, or robustness runs, apply `.agents/skills/spec-data-standard/SKILL.md`; keep credentials and API implementation with their owners.
 - For API clients, endpoint organization, API fixtures, resource setup/teardown, route mocks, authentication lifecycle, or API/UI workflows, apply `.agents/skills/api-setup-teardown/SKILL.md`. Run API-specific checks only when API code or API-backed tests exist. Shared fixture conventions and credentials remain coordinated with `test-standards`.
 - For Git validation or Git workflow operations, apply `.agents/skills/git-standards/SKILL.md`.
 
@@ -298,7 +314,9 @@ Inspect affected source after reading a Skill. Use its own finding format. Keep 
 
 ## Full Pipeline
 
-Do not force the full pipeline for a narrowly scoped change. When the user requests a full SDLC review, inspect repository state first, then use the eight-stage order above, mark API review not applicable when no API code or tests exist, and run `git-standards` in read-only validation mode. Its documentation check can be incomplete when the correct base cannot be verified. Collect findings only from Skills that actually ran, distinguish corrections from recommendations, and report unresolved work. Do not claim zero violations without executing the relevant checks.
+Do not force the full pipeline for a narrowly scoped change. When the user requests a full SDLC review, inspect repository state first, then use the ten-stage order above, mark API review not applicable when no API code or tests exist, and run `git-standards` in read-only validation mode. Its documentation check can be incomplete when the correct base cannot be verified. `spec-data-standard` may auto-fix R2, R3, R6–R9, and R11 only when safe and meaning-preserving; collect R1, R4, R5, R10, R12–R14, and R15 as manual findings. Do not change test meaning or risk existing user data. Collect findings only from Skills that actually ran, distinguish corrections from recommendations, and report unresolved work. Do not claim zero violations without executing the relevant checks.
+
+TC document requests are routed through `spec-quality-lifecycle`, which invokes `spec-requirements-standard` phase 1. Triggers include `assess test cases`, `refine test case`, `write test case`, and `tc coverage`. Data robustness triggers (`data robustness`, `parallel safe`, `multi environment`, `assess test data`, `verify robustness`) route through `spec-quality-lifecycle`: phase 2 Arrange uses `spec-data-standard` M0–M3, phase 4 Assert uses M4, and phase 5 Run uses M5. This repository uses one Full Pipeline rather than numbered Modes 1/7; do not add a duplicate orchestration mode.
 
 ```text
 [automation-architect] PIPELINE COMPLETE
@@ -309,6 +327,8 @@ test-standards:             <findings / not run>
 spec-standards:             <findings / not run>
 code-conventions:           <findings / not run>
 spec-quality-lifecycle:     <findings / not run>
+spec-requirements-standard: <scores / gaps / not run>
+spec-data-standard:        <maturity / findings / evidence / not run>
 api-setup-teardown:         <findings / NOT APPLICABLE / not run>
 git-standards:              <DOCS_SYNC and Git validation result>
 Remaining work:             <list or none>
@@ -375,6 +395,7 @@ For `update docs`, `sync documentation`, or `update readme`:
 3. Identify affected destinations and update only sections made inaccurate or incomplete.
 4. Preserve accurate manual content. Do not rewrite course scope, learning path, or educational descriptions unless explicitly requested.
 5. Do not invent a wiki, docs site, API reference, ADR collection, or test case catalog. Update optional destinations only when they exist or are explicitly required.
+   When synchronizing a new TC row, use the `spec-requirements-standard` template and include all mandatory fields, marking unknowns `TBD:`. Synchronization checks row presence only; content assessment/correction belongs to `spec-requirements-standard`.
 6. Check links, commands, examples, and Markdown formatting.
 7. Report files modified and sections updated or left unchanged.
 
@@ -402,6 +423,13 @@ Result: <UP TO DATE / UPDATED / INCOMPLETE>
 | Review test implementation quality | `test-standards` | `review test quality` |
 | Review TC organization and naming | `spec-standards` | `check spec structure` |
 | Review scenario preconditions, outcomes, cleanup needs, and determinism | `spec-quality-lifecycle` | `review scenario quality` |
+| Score TC specifications | `spec-requirements-standard` | `assess test cases` |
+| Upgrade an incomplete TC | `spec-requirements-standard` | `refine test case TC02` |
+| Prepare a TC for automation | `spec-requirements-standard` | `automation readiness TC02` |
+| Route TC assessment, refinement, writing, or coverage | `spec-quality-lifecycle` | `assess test cases` / `refine test case` / `write test case` / `tc coverage` |
+| Assess test data maturity | `spec-data-standard` | `assess test data` |
+| Make tests safe in parallel | `spec-data-standard` | `parallel safe` |
+| Verify robustness with execution evidence | `spec-data-standard` | `verify robustness` |
 | Design or review API infrastructure and resource lifecycle | `api-setup-teardown` | `review API setup and teardown` |
 | Validate or execute Git workflow | `git-standards` | `check git` / `git workflow` |
 | General TypeScript code conventions | `code-conventions` | `review TypeScript conventions` |

@@ -13,9 +13,11 @@ These Skill directories currently exist:
 | `automation-architect` | Routes cross-cutting work, coordinates ownership, and maintains architecture governance. | Use for full SDLC work or cross-cutting decisions. | Active |
 | `pom-architect` | Page Objects, UI components, locators, and navigation architecture. | Use when creating, reviewing, or changing UI abstractions. | Active |
 | `test-standards` | Test implementation, fixtures, test data, and credential hygiene. | Use for spec implementation and shared test infrastructure. | Active |
-| `spec-standards` | Spec hierarchy, filenames, TC IDs, describe names, and functional `test.step()` use. | Use when organizing, reviewing, or changing specs. | Active |
+| `spec-standards` | Spec hierarchy, filenames, TC IDs, describe names, functional `test.step()` use, and structured tag syntax. | Use when organizing, reviewing, or changing specs. | Active |
 | `code-conventions` | General TypeScript safety and maintainability. | Use for distinct language-level quality concerns. | Active |
 | `spec-quality-lifecycle` | Scenario preconditions, outcomes, postconditions, independence, and determinism. | Use for scenario-quality reviews; it complements implementation and structure Skills. | Active |
+| `spec-requirements-standard` | Test case documents: requirements traceability, preconditions, data, exact oracles, postconditions, coverage, and automation readiness. | Load before automating a TC, writing TCs from requirements, or reviewing `docs/test-cases/**/*.md`. | Active |
+| `spec-data-standard` | Data classification, typed sourcing, identity isolation, environment portability, expected-value sources, and robustness evidence. | Use for data creation/reading, parallel execution, environment support, or data-related intermittent failures. | Active |
 | `api-setup-teardown` | API clients, API fixtures, resource lifecycle, mocks, and API/UI workflows. | Use when API code or API-backed tests are in scope. | Active |
 | `git-standards` | Read-only Git and documentation-drift validation plus controlled Git workflows. | Use for documentation drift checks, Git validation, or explicitly requested Git workflows. | Active |
 
@@ -38,7 +40,9 @@ automation-architect
   |-- test-standards
   |-- spec-standards
   |-- code-conventions
-  |-- spec-quality-lifecycle
+  |-- spec-quality-lifecycle (lifecycle orchestrator)
+  |-- spec-requirements-standard (phase 1, invoked by spec-quality-lifecycle)
+  |-- spec-data-standard (phases 2, 4, and 5, invoked by spec-quality-lifecycle)
   |-- api-setup-teardown       (apply only when API code or tests exist)
   `-- git-standards
 ```
@@ -51,9 +55,11 @@ The registry and scan-scope table in `.agents/skills/automation-architect/SKILL.
 | Skill selection and orchestration | `automation-architect` | Routing, registry, ownership, pipeline, and framework governance |
 | UI architecture | `pom-architect` | Page Objects, UI components, locators, and navigation |
 | Test implementation | `test-standards` | Fixtures, test data, credentials, and implementation conventions |
-| Spec organization | `spec-standards` | Hierarchy, file/title IDs, describe names, and steps |
+| Spec organization | `spec-standards` | Hierarchy, file/title IDs, describe names, steps, and tag syntax |
 | General code quality | `code-conventions` | TypeScript language and maintainability concerns not owned elsewhere |
 | Scenario quality | `spec-quality-lifecycle` | Scenario-level correctness, lifecycle, isolation, and determinism |
+| Test case specification content | `spec-requirements-standard` | `docs/test-cases/**/*.md`; the lifecycle orchestrator calls it for Specify phase |
+| Test data robustness | `spec-data-standard` | Data classification, uniqueness, typed sources, environment portability, parallel isolation, value sources, and M5 evidence; no API or credential implementation ownership |
 | API infrastructure | `api-setup-teardown` | API clients, endpoints, controllers, API-specific fixtures, and resource cleanup |
 | Git and docs validation | `git-standards` | Branch/commit conventions and read-only drift checks; writes require its controlled workflow |
 
@@ -70,8 +76,11 @@ Use the smallest set that covers the requested work:
 | Task | Skills |
 |---|---|
 | Create or review a Page Object | `$pom-architect`, `$code-conventions` |
-| Create a test case | `$spec-standards`, `$test-standards`, and `$pom-architect` when using Page Objects |
-| Review scenario quality | `$spec-quality-lifecycle`; add `$test-standards` or `$spec-standards` only for their properties |
+| Write or review a test case document | `$spec-requirements-standard`; lifecycle routing through `$spec-quality-lifecycle` when doing full scenario work |
+| Create test automation from a TC | `$spec-quality-lifecycle` phase 1 (`$spec-requirements-standard` M0/M4), then `$spec-standards`, `$test-standards`, and `$pom-architect` when using Page Objects |
+| Assess or improve data robustness | `$spec-data-standard`, routed through `$spec-quality-lifecycle` for lifecycle work |
+| Verify parallel data robustness | `$spec-data-standard` M5; run only when the selected scope and cleanup are safe |
+| Review implemented scenario quality | `$spec-quality-lifecycle`; add `$test-standards` or `$spec-standards` only for their properties |
 | Review or change fixtures | `$test-standards`, `$code-conventions`; add `$api-setup-teardown` for API-specific fixture lifecycle |
 | Refactor TypeScript | `$code-conventions` plus the owning Skill for affected files |
 | Create or review API setup and teardown | `$api-setup-teardown`, when API code or tests are in scope |
@@ -84,15 +93,17 @@ Use the smallest set that covers the requested work:
 For a full review, inspect working-tree state and `AGENTS.md` first. `automation-architect` coordinates the process; then follow the dependency and ownership order:
 
 1. Inspect repository state, project instructions, and current implementation.
-2. `pom-architect` reviews UI architecture on which specs may depend.
-3. `test-standards` reviews test implementation, fixtures, test data, and credentials.
-4. `spec-standards` reviews specification structure and naming.
-5. `code-conventions` checks distinct TypeScript concerns in changed code.
-6. `spec-quality-lifecycle` reviews scenario preconditions, outcomes, cleanup needs, independence, and deterministic behavior.
+2. `spec-requirements-standard` assesses source TC readiness before code generation.
+3. `pom-architect` reviews UI architecture on which specs may depend.
+4. `test-standards` reviews test implementation, fixtures, and credentials.
+5. `spec-standards` reviews specification structure, naming, and active tag syntax.
+6. `code-conventions` checks distinct TypeScript concerns in changed code.
 7. `api-setup-teardown` reviews API architecture and lifecycle only if API code or API-backed tests exist; otherwise mark it not applicable.
-8. `git-standards` checks documentation drift and requested Git conventions in read-only mode. If the comparison base cannot be verified, report the check as incomplete. Do not perform Git writes as part of the review.
+8. `spec-data-standard` reviews data robustness (M1–M4) on resolved project data, configuration, fixtures, runner settings, and specs.
+9. `spec-quality-lifecycle` reviews scenario preconditions, outcomes, cleanup needs, independence, and determinism; it remains the lifecycle orchestrator.
+10. `git-standards` checks documentation drift and requested Git conventions in read-only mode. If the comparison base cannot be verified, report the check as incomplete. Do not perform Git writes as part of the review.
 
-Do not run the full pipeline for a narrow task that needs only one domain. Report checks that did not run; never imply that reading a Skill means its audit ran. Keep findings, recommendations, corrections, and incomplete checks distinct.
+Do not run the full pipeline for a narrow task that needs only one domain. `spec-quality-lifecycle` routes data work to M1–M3 in Arrange, M4 in Assert, and M5 in Run. Report checks that did not run; never imply that reading a Skill means its audit ran. Keep findings, recommendations, corrections, and incomplete checks distinct.
 
 ## Safe change and validation practices
 

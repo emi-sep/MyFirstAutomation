@@ -23,12 +23,18 @@ function errorMessage(error: unknown): string {
 async function cleanOwnedUser(
   user: TestUser,
   api: UseBookStoreApi,
-  accounts: AccountController
+  accounts: AccountController,
+  allowDestructiveCleanup: boolean
 ): Promise<string[]> {
   const errors: string[] = [];
   try {
     const profile = await api.collection();
     if (profile.books.length > 0) {
+      if (!allowDestructiveCleanup) {
+        throw new Error(
+          'Bulk collection cleanup was blocked because ALLOW_DESTRUCTIVE_CLEANUP is not true.'
+        );
+      }
       await api.deleteAllBooks();
     }
   } catch (error) {
@@ -50,10 +56,12 @@ export const test = base.extend<DemoQaFixtures>({
     let user: TestUser | undefined;
     let bookStoreApi: UseBookStoreApi | undefined;
     let accounts: AccountController | undefined;
+    let allowDestructiveCleanup = false;
     let setupFailed = false;
 
     try {
       const environment = getEnvironment();
+      allowDestructiveCleanup = environment.allowDestructiveCleanup;
       apiRequest = await playwright.request.newContext({
         baseURL: environment.DEMOQA_BASE_URL
       });
@@ -98,7 +106,12 @@ export const test = base.extend<DemoQaFixtures>({
       throw error;
     } finally {
       if (user && bookStoreApi && accounts) {
-        const cleanupErrors = await cleanOwnedUser(user, bookStoreApi, accounts);
+        const cleanupErrors = await cleanOwnedUser(
+          user,
+          bookStoreApi,
+          accounts,
+          allowDestructiveCleanup
+        );
         if (cleanupErrors.length > 0) {
           const message = `[DemoQA fixture] ${cleanupErrors.join('; ')}`;
           if (setupFailed || testInfo.status !== testInfo.expectedStatus) {

@@ -22,7 +22,10 @@ jobs:
     - name: Run Playwright tests
       run: npx playwright test
       env:
+        CI: 'true'
         BASE_URL: ${{ vars.BASE_URL || 'https://www.saucedemo.com' }}
+        # DemoQA cleanup is limited to per-test users created by the fixture.
+        ALLOW_DESTRUCTIVE_CLEANUP: 'true'
         TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
         TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
     - uses: actions/upload-artifact@v4
